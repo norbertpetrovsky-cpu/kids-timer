@@ -25,7 +25,7 @@ let isPaused         = false;
 let lastMoodState    = 'idle';
 let lottieAnim       = null;
 
-const CIRCUMFERENCE = 2 * Math.PI * 76; // ~477.5
+const CIRCUMFERENCE = 2 * Math.PI * 90; // ~477.5
 
 // ── LOTTIE INIT ──
 function initLottie() {

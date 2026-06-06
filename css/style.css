@@ -228,7 +228,7 @@ body.meal-dinner .mood-bubble::before {
 
 /* ── PROGRESS RING ── */
 .ring-wrap {
-  position: relative; width: 175px; height: 175px;
+  position: relative; width: 210px; height: 210px;
   display: flex; align-items: center; justify-content: center;
 }
 
@@ -261,7 +261,7 @@ body.meal-dinner .mood-bubble::before {
 
 .timer-display {
   font-family: 'Fredoka One', cursive;
-  font-size: 3.6rem; letter-spacing: 3px; line-height: 1;
+  font-size: 2.9rem; letter-spacing: 2px; line-height: 1;
   color: var(--textcol);
   text-shadow: 0 2px 10px rgba(255,255,255,0.5);
   transition: color 0.5s, transform 0.3s;
