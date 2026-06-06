@@ -415,3 +415,36 @@ body.meal-dinner {
   --accent: var(--dinner-accent); --textcol: var(--dinner-text);
   --cardbg: var(--dinner-card);   --btncolor: var(--dinner-btn);
 }
+
+/* ── FULLSCREEN BUTTON ── */
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+
+.fullscreen-btn {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(8px);
+  border: 2px solid rgba(255,255,255,0.7);
+  border-radius: 20px;
+  padding: 5px 13px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--textcol);
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  white-space: nowrap;
+}
+.fullscreen-btn:active { transform: scale(0.93); }
+
+body.meal-dinner .fullscreen-btn {
+  background: rgba(40,10,80,0.55);
+  color: #e1bee7;
+  border-color: rgba(200,150,255,0.4);
+}

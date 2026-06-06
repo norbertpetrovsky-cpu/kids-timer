@@ -24,24 +24,50 @@ let isRunning        = false;
 let isPaused         = false;
 let lastMoodState    = 'idle';
 let lottieAnim       = null;
+let warningPlayed    = false;
+let urgentPlayed     = false;
 
-const CIRCUMFERENCE = 2 * Math.PI * 90; // ~477.5
+const CIRCUMFERENCE = 2 * Math.PI * 90;
 
 // ── LOTTIE INIT ──
 function initLottie() {
   if (typeof lottie === 'undefined') return;
   lottieAnim = lottie.loadAnimation({
-    container:     document.getElementById('lottie-bunny'),
-    renderer:      'svg',
-    loop:          true,
-    autoplay:      true,
-    path:          'images/bunny.json',
+    container: document.getElementById('lottie-bunny'),
+    renderer:  'svg',
+    loop:      true,
+    autoplay:  true,
+    path:      'images/bunny.json',
   });
 }
 
 function setBunnySpeed(speed) {
   if (!lottieAnim) return;
   lottieAnim.setSpeed(speed);
+}
+
+// ── FULLSCREEN ──
+function toggleFullscreen() {
+  const btn = document.getElementById('btn-fullscreen');
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    const el = document.documentElement;
+    if (el.requestFullscreen)       el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    btn.textContent = '✕ Exit Full';
+  } else {
+    if (document.exitFullscreen)        document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    btn.textContent = '⛶ Fullscreen';
+  }
+}
+
+document.addEventListener('fullscreenchange',       updateFullscreenBtn);
+document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+function updateFullscreenBtn() {
+  const btn = document.getElementById('btn-fullscreen');
+  if (!btn) return;
+  const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  btn.textContent = isFull ? '✕ Exit Full' : '⛶ Fullscreen';
 }
 
 // ── BACKGROUND TRANSITION ──
@@ -70,6 +96,7 @@ function autoDetectMeal() {
 // ── SELECT MEAL ──
 function selectMeal(meal) {
   if (isRunning) return;
+  resumeAudio();
   currentMeal = meal;
   document.body.className = 'meal-' + meal;
   document.querySelectorAll('.meal-btn').forEach(b => b.classList.remove('active'));
@@ -87,6 +114,8 @@ function selectMeal(meal) {
 // ── ADJUST TIME ──
 function adjustTime(delta) {
   if (isRunning) return;
+  resumeAudio();
+  playClick();
   const n = totalSeconds + delta * 60;
   if (n < 60 || n > 90 * 60) return;
   totalSeconds = n; remainingSeconds = n;
@@ -98,28 +127,38 @@ function adjustTime(delta) {
 // ── TIMER CONTROLS ──
 function startTimer() {
   if (isRunning) return;
-  isRunning = true; isPaused = false;
+  resumeAudio();
+  isRunning      = true;
+  isPaused       = false;
+  warningPlayed  = false;
+  urgentPlayed   = false;
+
   document.getElementById('btn-start').style.display = 'none';
   document.getElementById('btn-pause').style.display = 'flex';
   document.getElementById('done-btn').classList.add('visible');
   document.getElementById('btn-minus').disabled = true;
   document.getElementById('btn-plus').disabled  = true;
   document.getElementById('paused-badge').classList.remove('show');
+
+  playStartChime();
   updateMood('running_lots');
   timerInterval = setInterval(tick, 1000);
 }
 
 function pauseTimer() {
   if (!isRunning) return;
+  resumeAudio();
   if (!isPaused) {
     isPaused = true;
     clearInterval(timerInterval);
     lottieAnim && lottieAnim.pause();
+    playClick();
     document.getElementById('btn-pause').innerHTML = '▶ Resume';
     document.getElementById('paused-badge').classList.add('show');
   } else {
     isPaused = false;
     lottieAnim && lottieAnim.play();
+    playClick();
     document.getElementById('btn-pause').innerHTML = '⏸ Pause';
     document.getElementById('paused-badge').classList.remove('show');
     timerInterval = setInterval(tick, 1000);
@@ -128,10 +167,15 @@ function pauseTimer() {
 
 function resetTimer() {
   clearInterval(timerInterval);
-  isRunning = false; isPaused = false;
+  isRunning      = false;
+  isPaused       = false;
+  warningPlayed  = false;
+  urgentPlayed   = false;
   remainingSeconds = totalSeconds;
+
   lottieAnim && lottieAnim.play();
   setBunnySpeed(1);
+
   document.getElementById('btn-start').style.display = 'flex';
   document.getElementById('btn-pause').style.display = 'none';
   document.getElementById('btn-pause').innerHTML = '⏸ Pause';
@@ -142,12 +186,30 @@ function resetTimer() {
   document.getElementById('timer-display').className = 'timer-display';
   document.getElementById('ring-progress').className = 'ring-progress';
   document.querySelector('.bunny-wrap').classList.remove('shake', 'celebrate');
+
   updateDisplay(); updateRing(); updateMood('idle');
 }
 
 function tick() {
   remainingSeconds--;
-  updateDisplay(); updateRing(); updateMoodByTime();
+  updateDisplay();
+  updateRing();
+  updateMoodByTime();
+
+  // ── Sound triggers ──
+  if (remainingSeconds === 5 * 60 && !warningPlayed) {
+    warningPlayed = true;
+    playWarningBell();
+  }
+  if (remainingSeconds === 60 && !urgentPlayed) {
+    urgentPlayed = true;
+    playUrgentTick();
+  }
+  // Urgent ticks every 10s in last minute
+  if (remainingSeconds < 60 && remainingSeconds > 0 && remainingSeconds % 10 === 0) {
+    playUrgentTick();
+  }
+
   if (remainingSeconds <= 0) {
     clearInterval(timerInterval);
     remainingSeconds = 0;
@@ -164,8 +226,8 @@ function updateDisplay() {
     String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
   const el = document.getElementById('timer-display');
   el.className = 'timer-display';
-  if      (remainingSeconds <= 60)      el.classList.add('urgent');
-  else if (remainingSeconds <= 5 * 60)  el.classList.add('warning');
+  if      (remainingSeconds <= 60)     el.classList.add('urgent');
+  else if (remainingSeconds <= 5 * 60) el.classList.add('warning');
 }
 
 function updateRing() {
@@ -182,10 +244,10 @@ function updateRing() {
 function updateMoodByTime() {
   const frac = remainingSeconds / totalSeconds;
   let state;
-  if      (frac > 0.6)  state = 'running_lots';
-  else if (frac > 0.3)  state = 'running_mid';
-  else if (frac > 0.1)  state = 'warning';
-  else                  state = 'urgent';
+  if      (frac > 0.6) state = 'running_lots';
+  else if (frac > 0.3) state = 'running_mid';
+  else if (frac > 0.1) state = 'warning';
+  else                 state = 'urgent';
   if (state !== lastMoodState) updateMood(state);
 }
 
@@ -201,7 +263,6 @@ function updateMood(state) {
   const wrap = document.querySelector('.bunny-wrap');
   wrap.classList.remove('shake', 'celebrate');
 
-  // Lottie speed + bunny shake
   if      (state === 'idle' || state === 'running_lots') setBunnySpeed(1);
   else if (state === 'running_mid')                      setBunnySpeed(1.2);
   else if (state === 'warning')  { setBunnySpeed(1.8); wrap.classList.add('shake'); }
@@ -210,19 +271,22 @@ function updateMood(state) {
 
 // ── CELEBRATION ──
 function celebrate(type) {
-  clearInterval(timerInterval); isRunning = false;
+  clearInterval(timerInterval);
+  isRunning = false;
   lottieAnim && lottieAnim.pause();
   document.querySelector('.bunny-wrap').classList.remove('shake');
   document.querySelector('.bunny-wrap').classList.add('celebrate');
 
   if (type === 'done') {
-    document.getElementById('celeb-icon').textContent = '🎉';
+    document.getElementById('celeb-icon').textContent  = '🎉';
     document.getElementById('celeb-title').textContent = 'Wonderful, Elizabeth!';
     document.getElementById('celeb-msg').textContent   = 'You finished your meal like a true princess! 👑🐰';
+    playFanfare();
   } else {
-    document.getElementById('celeb-icon').textContent = '⏰';
+    document.getElementById('celeb-icon').textContent  = '⏰';
     document.getElementById('celeb-title').textContent = "Time's up, Elizabeth!";
     document.getElementById('celeb-msg').textContent   = "Let's try to eat a little faster next time! 🐰💪";
+    playTimeout();
   }
   document.getElementById('celebrate-overlay').classList.add('show');
   launchConfetti();
@@ -238,12 +302,12 @@ function launchConfetti() {
   for (let i = 0; i < 28; i++) {
     setTimeout(() => {
       const el = document.createElement('div');
-      el.className = 'confetti-piece';
-      el.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
-      el.style.left             = Math.random() * 100 + 'vw';
-      el.style.fontSize         = (1.2 + Math.random() * 1.4) + 'rem';
+      el.className    = 'confetti-piece';
+      el.textContent  = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      el.style.left              = Math.random() * 100 + 'vw';
+      el.style.fontSize          = (1.2 + Math.random() * 1.4) + 'rem';
       el.style.animationDuration = (2.2 + Math.random() * 2.2) + 's';
-      el.style.animationDelay   = (Math.random() * 0.6) + 's';
+      el.style.animationDelay    = (Math.random() * 0.6) + 's';
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 5500);
     }, i * 70);

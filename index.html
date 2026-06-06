@@ -24,7 +24,10 @@
   <!-- Header -->
   <div class="header">
     <h1>🐰 Elizabeth's Magic Timer</h1>
-    <div class="subtitle" id="subtitle">Good morning! 🌅</div>
+    <div class="header-row">
+      <div class="subtitle" id="subtitle">Good morning! 🌅</div>
+      <button class="fullscreen-btn" id="btn-fullscreen" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+    </div>
   </div>
 
   <!-- Meal selector -->
@@ -111,8 +114,9 @@
   <button class="dismiss-btn" onclick="dismissCelebration()">Again! 🐰</button>
 </div>
 
-<!-- Lottie player -->
+<!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
+<script src="js/sounds.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
