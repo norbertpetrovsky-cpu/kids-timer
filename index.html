@@ -18,93 +18,143 @@
 <div id="scene-bg"></div>
 <div id="scene-bg-next"></div>
 
-<!-- ── APP ── -->
-<div class="app">
+<!-- ═══════════════════════════════════
+     HOME SCREEN
+════════════════════════════════════ -->
+<div class="screen" id="screen-home">
+  <div class="app home-app">
 
-  <!-- Header -->
-  <div class="header">
-    <h1>🐰 Elizabeth's Magic Timer</h1>
-    <div class="header-row">
-      <div class="subtitle" id="subtitle">Good morning! 🌅</div>
-      <button class="fullscreen-btn" id="btn-fullscreen" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+    <!-- Header -->
+    <div class="header">
+      <h1>🐰 Elizabeth's Magic Timer</h1>
+      <div class="header-row">
+        <div class="subtitle" id="home-subtitle">What are we eating? 🍴</div>
+        <button class="fullscreen-btn" id="btn-fullscreen" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+      </div>
     </div>
-  </div>
 
-  <!-- Meal selector -->
-  <div class="meal-selector">
-    <button class="meal-btn active" id="btn-breakfast" onclick="selectMeal('breakfast')">
-      <span class="meal-icon">🥞</span>
-      <span>Breakfast</span>
-      <span style="opacity:0.6;font-size:0.68rem">15 min</span>
+    <!-- Meal cards -->
+    <div class="meal-cards">
+
+      <button class="meal-card" id="card-breakfast" onclick="selectMeal('breakfast')">
+        <div class="meal-card-scene" id="card-scene-breakfast">
+          <div class="meal-card-emoji">🥞</div>
+        </div>
+        <div class="meal-card-label">Breakfast</div>
+        <div class="meal-card-time" id="card-time-breakfast">15 min</div>
+        <div class="meal-card-check">✓</div>
+      </button>
+
+      <button class="meal-card" id="card-lunch" onclick="selectMeal('lunch')">
+        <div class="meal-card-scene" id="card-scene-lunch">
+          <div class="meal-card-emoji">🥣</div>
+        </div>
+        <div class="meal-card-label">Lunch</div>
+        <div class="meal-card-time" id="card-time-lunch">30 min</div>
+        <div class="meal-card-check">✓</div>
+      </button>
+
+      <button class="meal-card" id="card-dinner" onclick="selectMeal('dinner')">
+        <div class="meal-card-scene" id="card-scene-dinner">
+          <div class="meal-card-emoji">🍽️</div>
+        </div>
+        <div class="meal-card-label">Dinner</div>
+        <div class="meal-card-time" id="card-time-dinner">30 min</div>
+        <div class="meal-card-check">✓</div>
+      </button>
+
+    </div>
+
+    <!-- Time slider -->
+    <div class="slider-section">
+      <div class="slider-label">
+        <span>How long?</span>
+        <span class="slider-value" id="slider-value">15 minutes ⏱️</span>
+      </div>
+      <div class="slider-wrap">
+        <span class="slider-end-label">5</span>
+        <input type="range" class="time-slider" id="time-slider"
+          min="5" max="60" step="5" value="15"
+          oninput="onSliderChange(this.value)">
+        <span class="slider-end-label">60</span>
+      </div>
+      <div class="slider-ticks">
+        <span>5</span><span>10</span><span>15</span><span>20</span><span>25</span>
+        <span>30</span><span>35</span><span>40</span><span>45</span><span>50</span>
+        <span>55</span><span>60</span>
+      </div>
+    </div>
+
+    <!-- Go button -->
+    <button class="go-btn" onclick="goToTimer()">
+      Let's eat! 🐰
     </button>
-    <button class="meal-btn" id="btn-lunch" onclick="selectMeal('lunch')">
-      <span class="meal-icon">🥣</span>
-      <span>Lunch</span>
-      <span style="opacity:0.6;font-size:0.68rem">30 min</span>
-    </button>
-    <button class="meal-btn" id="btn-dinner" onclick="selectMeal('dinner')">
-      <span class="meal-icon">🍽️</span>
-      <span>Dinner</span>
-      <span style="opacity:0.6;font-size:0.68rem">30 min</span>
-    </button>
-  </div>
-
-  <!-- Bunny character -->
-  <div class="bunny-stage">
-    <div class="bunny-wrap" id="bunny-wrap">
-      <div class="crown">👑</div>
-      <div id="lottie-bunny"></div>
-    </div>
-    <div class="mood-bubble" id="mood-text">Ready to eat, Elizabeth? 🍴</div>
-  </div>
-
-  <!-- Timer card -->
-  <div class="timer-card">
-
-    <!-- Ring + time display -->
-    <div class="ring-wrap">
-      <svg class="ring-svg" width="210" height="210" viewBox="0 0 210 210">
-        <defs>
-          <filter id="ring-glow">
-            <feGaussianBlur stdDeviation="4" result="b"/>
-            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        <circle class="ring-track" cx="105" cy="105" r="90"/>
-        <circle class="ring-progress" id="ring-progress"
-          cx="105" cy="105" r="90"
-          stroke-dasharray="565.5"
-          stroke-dashoffset="0"
-          filter="url(#ring-glow)"/>
-      </svg>
-      <div class="timer-display" id="timer-display">15:00</div>
-    </div>
-
-    <!-- Paused badge -->
-    <div class="paused-badge" id="paused-badge">⏸ PAUSED</div>
-
-    <!-- Time adjust -->
-    <div class="time-adjust">
-      <button class="adj-btn" id="btn-minus" onclick="adjustTime(-1)">−</button>
-      <div class="adj-label">Adjust<br>minutes</div>
-      <button class="adj-btn" id="btn-plus"  onclick="adjustTime(1)">+</button>
-    </div>
-
-    <!-- Start / Pause / Reset -->
-    <div class="controls">
-      <button class="ctrl-btn btn-start" id="btn-start" onclick="startTimer()">▶ Start</button>
-      <button class="ctrl-btn btn-pause" id="btn-pause" onclick="pauseTimer()" style="display:none">⏸ Pause</button>
-      <button class="ctrl-btn btn-reset" id="btn-reset" onclick="resetTimer()">↺ Reset</button>
-    </div>
 
   </div>
-
-  <!-- Done button -->
-  <button class="done-btn" id="done-btn" onclick="celebrate('done')">🎉 I'm done eating!</button>
-
 </div>
 
-<!-- Celebration overlay -->
+<!-- ═══════════════════════════════════
+     TIMER SCREEN
+════════════════════════════════════ -->
+<div class="screen hidden" id="screen-timer">
+  <div class="app timer-app">
+
+    <!-- Top bar -->
+    <div class="timer-topbar">
+      <button class="back-btn" onclick="goHome()" title="Back to home">← Back</button>
+      <div class="timer-meal-label" id="timer-meal-label">🥞 Breakfast</div>
+      <div style="width:70px"></div><!-- spacer -->
+    </div>
+
+    <!-- Bunny -->
+    <div class="bunny-stage">
+      <div class="bunny-wrap" id="bunny-wrap">
+        <div class="crown">👑</div>
+        <div id="lottie-bunny"></div>
+      </div>
+      <div class="mood-bubble" id="mood-text">Ready to eat, Elizabeth? 🍴</div>
+    </div>
+
+    <!-- Timer card -->
+    <div class="timer-card">
+
+      <div class="ring-wrap">
+        <svg class="ring-svg" width="210" height="210" viewBox="0 0 210 210">
+          <defs>
+            <filter id="ring-glow">
+              <feGaussianBlur stdDeviation="4" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <circle class="ring-track" cx="105" cy="105" r="90"/>
+          <circle class="ring-progress" id="ring-progress"
+            cx="105" cy="105" r="90"
+            stroke-dasharray="565.5"
+            stroke-dashoffset="0"
+            filter="url(#ring-glow)"/>
+        </svg>
+        <div class="timer-display" id="timer-display">15:00</div>
+      </div>
+
+      <div class="paused-badge" id="paused-badge">⏸ PAUSED</div>
+
+      <div class="controls">
+        <button class="ctrl-btn btn-start" id="btn-start" onclick="startTimer()">▶ Start</button>
+        <button class="ctrl-btn btn-pause" id="btn-pause" onclick="pauseTimer()" style="display:none">⏸ Pause</button>
+        <button class="ctrl-btn btn-reset" id="btn-reset" onclick="resetTimer()">↺ Reset</button>
+      </div>
+
+    </div>
+
+    <!-- Done button -->
+    <button class="done-btn" id="done-btn" onclick="celebrate('done')">🎉 I'm done eating!</button>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     CELEBRATION OVERLAY
+════════════════════════════════════ -->
 <div class="celebrate" id="celebrate-overlay">
   <div class="celebrate-bg"></div>
   <div class="celebrate-icon" id="celeb-icon">🎉</div>

@@ -1,7 +1,8 @@
 // ── CONFIG ──
-const MEAL_DEFAULTS   = { breakfast: 15, lunch: 30, dinner: 30 };
-const MEAL_BG         = { breakfast: 'images/bg-breakfast.svg', lunch: 'images/bg-lunch.svg', dinner: 'images/bg-dinner.svg' };
-const MEAL_GREETINGS  = {
+const MEAL_DEFAULTS = { breakfast: 15, lunch: 30, dinner: 30 };
+const MEAL_BG       = { breakfast: 'images/bg-breakfast.svg', lunch: 'images/bg-lunch.svg', dinner: 'images/bg-dinner.svg' };
+const MEAL_LABELS   = { breakfast: '🥞 Breakfast', lunch: '🥣 Lunch', dinner: '🍽️ Dinner' };
+const MEAL_GREETINGS = {
   breakfast: ['Good morning, Elizabeth! 🌅', 'Rise and shine! ☀️', 'Morning magic! 🌸'],
   lunch:     ['Lunchtime adventure! 🌿', 'Enchanted garden feast! 🌼', 'Yummy lunchtime! 🥗'],
   dinner:    ['Royal dinner time! 🌙', 'A magical feast awaits! 👑', 'Evening magic! ✨'],
@@ -17,6 +18,7 @@ const CONFETTI = ['🎊','🌟','🎈','👑','🌸','✨','🎀','🍬','🌈',
 
 // ── STATE ──
 let currentMeal      = 'breakfast';
+let selectedMinutes  = 15;
 let totalSeconds     = 15 * 60;
 let remainingSeconds = totalSeconds;
 let timerInterval    = null;
@@ -27,62 +29,48 @@ let lottieAnim       = null;
 let warningPlayed    = false;
 let urgentPlayed     = false;
 
-const CIRCUMFERENCE = 2 * Math.PI * 90;
+const CIRCUMFERENCE = 2 * Math.PI * 90; // 565.5
 
-// ── LOTTIE INIT ──
+// ── LOTTIE ──
 function initLottie() {
   if (typeof lottie === 'undefined') return;
   lottieAnim = lottie.loadAnimation({
     container: document.getElementById('lottie-bunny'),
-    renderer:  'svg',
-    loop:      true,
-    autoplay:  true,
+    renderer:  'svg', loop: true, autoplay: true,
     path:      'images/bunny.json',
   });
 }
-
-function setBunnySpeed(speed) {
-  if (!lottieAnim) return;
-  lottieAnim.setSpeed(speed);
-}
+function setBunnySpeed(speed) { lottieAnim && lottieAnim.setSpeed(speed); }
 
 // ── FULLSCREEN ──
 function toggleFullscreen() {
   const btn = document.getElementById('btn-fullscreen');
   if (!document.fullscreenElement && !document.webkitFullscreenElement) {
     const el = document.documentElement;
-    if (el.requestFullscreen)       el.requestFullscreen();
+    if (el.requestFullscreen)            el.requestFullscreen();
     else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     btn.textContent = '✕ Exit Full';
   } else {
-    if (document.exitFullscreen)        document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    if (document.exitFullscreen)             document.exitFullscreen();
+    else if (document.webkitExitFullscreen)  document.webkitExitFullscreen();
     btn.textContent = '⛶ Fullscreen';
   }
 }
+document.addEventListener('fullscreenchange',       () => { const b = document.getElementById('btn-fullscreen'); if(b) b.textContent = document.fullscreenElement ? '✕ Exit Full' : '⛶ Fullscreen'; });
+document.addEventListener('webkitfullscreenchange', () => { const b = document.getElementById('btn-fullscreen'); if(b) b.textContent = document.webkitFullscreenElement ? '✕ Exit Full' : '⛶ Fullscreen'; });
 
-document.addEventListener('fullscreenchange',       updateFullscreenBtn);
-document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
-function updateFullscreenBtn() {
-  const btn = document.getElementById('btn-fullscreen');
-  if (!btn) return;
-  const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
-  btn.textContent = isFull ? '✕ Exit Full' : '⛶ Fullscreen';
-}
-
-// ── BACKGROUND TRANSITION ──
+// ── BACKGROUND ──
 function switchBackground(meal) {
-  const bg     = document.getElementById('scene-bg');
   const bgNext = document.getElementById('scene-bg-next');
   bgNext.style.backgroundImage = `url('${MEAL_BG[meal]}')`;
   bgNext.style.opacity = '1';
   setTimeout(() => {
-    bg.style.backgroundImage = `url('${MEAL_BG[meal]}')`;
+    document.getElementById('scene-bg').style.backgroundImage = `url('${MEAL_BG[meal]}')`;
     bgNext.style.opacity = '0';
   }, 700);
 }
 
-// ── AUTO-DETECT MEAL ──
+// ── AUTO-DETECT ──
 function autoDetectMeal() {
   const h = new Date().getHours();
   let meal;
@@ -93,53 +81,118 @@ function autoDetectMeal() {
   selectMeal(meal);
 }
 
-// ── SELECT MEAL ──
+// ── SELECT MEAL (home screen) ──
 function selectMeal(meal) {
-  if (isRunning) return;
-  resumeAudio();
   currentMeal = meal;
   document.body.className = 'meal-' + meal;
-  document.querySelectorAll('.meal-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btn-' + meal).classList.add('active');
+
+  // Update card active states
+  document.querySelectorAll('.meal-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('card-' + meal).classList.add('active');
+
+  // Set slider to default for this meal
+  selectedMinutes = MEAL_DEFAULTS[meal];
+  const slider = document.getElementById('time-slider');
+  slider.value = selectedMinutes;
+  updateSliderDisplay(selectedMinutes);
+
+  // Update subtitle
   const greets = MEAL_GREETINGS[meal];
-  document.getElementById('subtitle').textContent = greets[Math.floor(Math.random() * greets.length)];
-  totalSeconds     = MEAL_DEFAULTS[meal] * 60;
-  remainingSeconds = totalSeconds;
+  document.getElementById('home-subtitle').textContent = greets[Math.floor(Math.random() * greets.length)];
+
   switchBackground(meal);
+}
+
+// ── SLIDER ──
+function onSliderChange(val) {
+  resumeAudio();
+  selectedMinutes = parseInt(val);
+  updateSliderDisplay(selectedMinutes);
+  // Update the card time label
+  document.getElementById('card-time-' + currentMeal).textContent = selectedMinutes + ' min';
+}
+
+function updateSliderDisplay(minutes) {
+  const el = document.getElementById('slider-value');
+  el.textContent = minutes + ' minutes ⏱️';
+  // Re-trigger pop animation
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = 'valuePop 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+
+  // Color the slider track fill
+  const slider = document.getElementById('time-slider');
+  const pct = ((minutes - 5) / (60 - 5)) * 100;
+  slider.style.background = `linear-gradient(to right, var(--accent) ${pct}%, rgba(0,0,0,0.08) ${pct}%)`;
+}
+
+// ── SCREEN NAVIGATION ──
+function goToTimer() {
+  resumeAudio();
+  playClick();
+
+  // Set up timer state
+  totalSeconds     = selectedMinutes * 60;
+  remainingSeconds = totalSeconds;
+  isRunning        = false;
+  isPaused         = false;
+  warningPlayed    = false;
+  urgentPlayed     = false;
+
+  // Update timer screen labels
+  document.getElementById('timer-meal-label').textContent = MEAL_LABELS[currentMeal];
   updateDisplay();
   updateRing();
   updateMood('idle');
+  setBunnySpeed(1);
+  lottieAnim && lottieAnim.play();
+  document.querySelector('.bunny-wrap').classList.remove('shake', 'celebrate');
+
+  // Reset controls
+  document.getElementById('btn-start').style.display = 'flex';
+  document.getElementById('btn-pause').style.display = 'none';
+  document.getElementById('btn-pause').innerHTML = '⏸ Pause';
+  document.getElementById('done-btn').classList.remove('visible');
+  document.getElementById('paused-badge').classList.remove('show');
+  document.getElementById('timer-display').className = 'timer-display';
+  document.getElementById('ring-progress').className = 'ring-progress';
+
+  // Transition screens
+  const home  = document.getElementById('screen-home');
+  const timer = document.getElementById('screen-timer');
+  home.classList.add('slide-out-left');
+  setTimeout(() => {
+    home.classList.add('hidden');
+    home.classList.remove('slide-out-left');
+    timer.classList.remove('hidden');
+  }, 380);
 }
 
-// ── ADJUST TIME ──
-function adjustTime(delta) {
-  if (isRunning) return;
-  resumeAudio();
-  playClick();
-  const n = totalSeconds + delta * 60;
-  if (n < 60 || n > 90 * 60) return;
-  totalSeconds = n; remainingSeconds = n;
-  updateDisplay(); updateRing();
-  document.getElementById('btn-minus').disabled = totalSeconds <= 60;
-  document.getElementById('btn-plus').disabled  = totalSeconds >= 90 * 60;
+function goHome() {
+  // Stop any running timer
+  clearInterval(timerInterval);
+  isRunning = false; isPaused = false;
+  lottieAnim && lottieAnim.play();
+  setBunnySpeed(1);
+
+  const home  = document.getElementById('screen-home');
+  const timer = document.getElementById('screen-timer');
+  timer.classList.add('hidden');
+  home.classList.remove('hidden');
+  // Reset slider display for current meal
+  updateSliderDisplay(selectedMinutes);
 }
 
 // ── TIMER CONTROLS ──
 function startTimer() {
   if (isRunning) return;
   resumeAudio();
-  isRunning      = true;
-  isPaused       = false;
-  warningPlayed  = false;
-  urgentPlayed   = false;
+  isRunning = true; isPaused = false;
+  warningPlayed = false; urgentPlayed = false;
 
   document.getElementById('btn-start').style.display = 'none';
   document.getElementById('btn-pause').style.display = 'flex';
   document.getElementById('done-btn').classList.add('visible');
-  document.getElementById('btn-minus').disabled = true;
-  document.getElementById('btn-plus').disabled  = true;
-  document.getElementById('paused-badge').classList.remove('show');
-
   playStartChime();
   updateMood('running_lots');
   timerInterval = setInterval(tick, 1000);
@@ -149,8 +202,7 @@ function pauseTimer() {
   if (!isRunning) return;
   resumeAudio();
   if (!isPaused) {
-    isPaused = true;
-    clearInterval(timerInterval);
+    isPaused = true; clearInterval(timerInterval);
     lottieAnim && lottieAnim.pause();
     playClick();
     document.getElementById('btn-pause').innerHTML = '▶ Resume';
@@ -167,63 +219,36 @@ function pauseTimer() {
 
 function resetTimer() {
   clearInterval(timerInterval);
-  isRunning      = false;
-  isPaused       = false;
-  warningPlayed  = false;
-  urgentPlayed   = false;
+  isRunning = false; isPaused = false;
+  warningPlayed = false; urgentPlayed = false;
   remainingSeconds = totalSeconds;
-
   lottieAnim && lottieAnim.play();
   setBunnySpeed(1);
-
   document.getElementById('btn-start').style.display = 'flex';
   document.getElementById('btn-pause').style.display = 'none';
   document.getElementById('btn-pause').innerHTML = '⏸ Pause';
   document.getElementById('done-btn').classList.remove('visible');
-  document.getElementById('btn-minus').disabled = false;
-  document.getElementById('btn-plus').disabled  = false;
   document.getElementById('paused-badge').classList.remove('show');
   document.getElementById('timer-display').className = 'timer-display';
   document.getElementById('ring-progress').className = 'ring-progress';
   document.querySelector('.bunny-wrap').classList.remove('shake', 'celebrate');
-
   updateDisplay(); updateRing(); updateMood('idle');
 }
 
 function tick() {
   remainingSeconds--;
-  updateDisplay();
-  updateRing();
-  updateMoodByTime();
-
-  // ── Sound triggers ──
-  if (remainingSeconds === 5 * 60 && !warningPlayed) {
-    warningPlayed = true;
-    playWarningBell();
-  }
-  if (remainingSeconds === 60 && !urgentPlayed) {
-    urgentPlayed = true;
-    playUrgentTick();
-  }
-  // Urgent ticks every 10s in last minute
-  if (remainingSeconds < 60 && remainingSeconds > 0 && remainingSeconds % 10 === 0) {
-    playUrgentTick();
-  }
-
-  if (remainingSeconds <= 0) {
-    clearInterval(timerInterval);
-    remainingSeconds = 0;
-    updateDisplay();
-    celebrate('timeout');
-  }
+  updateDisplay(); updateRing(); updateMoodByTime();
+  if (remainingSeconds === 5 * 60 && !warningPlayed) { warningPlayed = true; playWarningBell(); }
+  if (remainingSeconds === 60 && !urgentPlayed)       { urgentPlayed = true; playUrgentTick(); }
+  if (remainingSeconds < 60 && remainingSeconds > 0 && remainingSeconds % 10 === 0) playUrgentTick();
+  if (remainingSeconds <= 0) { clearInterval(timerInterval); remainingSeconds = 0; updateDisplay(); celebrate('timeout'); }
 }
 
 // ── DISPLAY ──
 function updateDisplay() {
   const m = Math.floor(remainingSeconds / 60);
   const s = remainingSeconds % 60;
-  document.getElementById('timer-display').textContent =
-    String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  document.getElementById('timer-display').textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
   const el = document.getElementById('timer-display');
   el.className = 'timer-display';
   if      (remainingSeconds <= 60)     el.classList.add('urgent');
@@ -240,7 +265,7 @@ function updateRing() {
   else if (frac <= 0.35) rp.classList.add('warning');
 }
 
-// ── MOOD & BUNNY ──
+// ── MOOD ──
 function updateMoodByTime() {
   const frac = remainingSeconds / totalSeconds;
   let state;
@@ -253,30 +278,25 @@ function updateMoodByTime() {
 
 function updateMood(state) {
   lastMoodState = state;
-  const msgs = MOOD_MESSAGES[state];
   const el = document.getElementById('mood-text');
+  const msgs = MOOD_MESSAGES[state];
   el.textContent = msgs[Math.floor(Math.random() * msgs.length)];
-  el.style.animation = 'none';
-  void el.offsetWidth;
+  el.style.animation = 'none'; void el.offsetWidth;
   el.style.animation = 'bubblePop 0.35s cubic-bezier(0.34,1.56,0.64,1)';
-
   const wrap = document.querySelector('.bunny-wrap');
   wrap.classList.remove('shake', 'celebrate');
-
   if      (state === 'idle' || state === 'running_lots') setBunnySpeed(1);
   else if (state === 'running_mid')                      setBunnySpeed(1.2);
   else if (state === 'warning')  { setBunnySpeed(1.8); wrap.classList.add('shake'); }
   else if (state === 'urgent')   { setBunnySpeed(2.8); wrap.classList.add('shake'); }
 }
 
-// ── CELEBRATION ──
+// ── CELEBRATE ──
 function celebrate(type) {
-  clearInterval(timerInterval);
-  isRunning = false;
+  clearInterval(timerInterval); isRunning = false;
   lottieAnim && lottieAnim.pause();
   document.querySelector('.bunny-wrap').classList.remove('shake');
   document.querySelector('.bunny-wrap').classList.add('celebrate');
-
   if (type === 'done') {
     document.getElementById('celeb-icon').textContent  = '🎉';
     document.getElementById('celeb-title').textContent = 'Wonderful, Elizabeth!';
@@ -302,12 +322,12 @@ function launchConfetti() {
   for (let i = 0; i < 28; i++) {
     setTimeout(() => {
       const el = document.createElement('div');
-      el.className    = 'confetti-piece';
-      el.textContent  = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
-      el.style.left              = Math.random() * 100 + 'vw';
-      el.style.fontSize          = (1.2 + Math.random() * 1.4) + 'rem';
+      el.className = 'confetti-piece';
+      el.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.fontSize = (1.2 + Math.random() * 1.4) + 'rem';
       el.style.animationDuration = (2.2 + Math.random() * 2.2) + 's';
-      el.style.animationDelay    = (Math.random() * 0.6) + 's';
+      el.style.animationDelay = (Math.random() * 0.6) + 's';
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 5500);
     }, i * 70);
@@ -319,6 +339,4 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('scene-bg').style.backgroundImage = `url('${MEAL_BG.breakfast}')`;
   initLottie();
   autoDetectMeal();
-  updateDisplay();
-  updateRing();
 });
