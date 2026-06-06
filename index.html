@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#ffe0b2">
+<title>Elizabeth's Magic Meal Timer 🐰</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="meal-breakfast">
+
+<!-- Background layers -->
+<div id="scene-bg"></div>
+<div id="scene-bg-next"></div>
+
+<!-- ── APP ── -->
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>🐰 Elizabeth's Magic Timer</h1>
+    <div class="subtitle" id="subtitle">Good morning! 🌅</div>
+  </div>
+
+  <!-- Meal selector -->
+  <div class="meal-selector">
+    <button class="meal-btn active" id="btn-breakfast" onclick="selectMeal('breakfast')">
+      <span class="meal-icon">🥞</span>
+      <span>Breakfast</span>
+      <span style="opacity:0.6;font-size:0.68rem">15 min</span>
+    </button>
+    <button class="meal-btn" id="btn-lunch" onclick="selectMeal('lunch')">
+      <span class="meal-icon">🥣</span>
+      <span>Lunch</span>
+      <span style="opacity:0.6;font-size:0.68rem">30 min</span>
+    </button>
+    <button class="meal-btn" id="btn-dinner" onclick="selectMeal('dinner')">
+      <span class="meal-icon">🍽️</span>
+      <span>Dinner</span>
+      <span style="opacity:0.6;font-size:0.68rem">30 min</span>
+    </button>
+  </div>
+
+  <!-- Bunny character -->
+  <div class="bunny-stage">
+    <div class="bunny-wrap" id="bunny-wrap">
+      <div class="crown">👑</div>
+      <div id="lottie-bunny"></div>
+    </div>
+    <div class="mood-bubble" id="mood-text">Ready to eat, Elizabeth? 🍴</div>
+  </div>
+
+  <!-- Timer card -->
+  <div class="timer-card">
+
+    <!-- Ring + time display -->
+    <div class="ring-wrap">
+      <svg class="ring-svg" width="175" height="175" viewBox="0 0 175 175">
+        <defs>
+          <filter id="ring-glow">
+            <feGaussianBlur stdDeviation="4" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <circle class="ring-track" cx="87.5" cy="87.5" r="76"/>
+        <circle class="ring-progress" id="ring-progress"
+          cx="87.5" cy="87.5" r="76"
+          stroke-dasharray="477.5"
+          stroke-dashoffset="0"
+          filter="url(#ring-glow)"/>
+      </svg>
+      <div class="timer-display" id="timer-display">15:00</div>
+    </div>
+
+    <!-- Paused badge -->
+    <div class="paused-badge" id="paused-badge">⏸ PAUSED</div>
+
+    <!-- Time adjust -->
+    <div class="time-adjust">
+      <button class="adj-btn" id="btn-minus" onclick="adjustTime(-1)">−</button>
+      <div class="adj-label">Adjust<br>minutes</div>
+      <button class="adj-btn" id="btn-plus"  onclick="adjustTime(1)">+</button>
+    </div>
+
+    <!-- Start / Pause / Reset -->
+    <div class="controls">
+      <button class="ctrl-btn btn-start" id="btn-start" onclick="startTimer()">▶ Start</button>
+      <button class="ctrl-btn btn-pause" id="btn-pause" onclick="pauseTimer()" style="display:none">⏸ Pause</button>
+      <button class="ctrl-btn btn-reset" id="btn-reset" onclick="resetTimer()">↺ Reset</button>
+    </div>
+
+  </div>
+
+  <!-- Done button -->
+  <button class="done-btn" id="done-btn" onclick="celebrate('done')">🎉 I'm done eating!</button>
+
+</div>
+
+<!-- Celebration overlay -->
+<div class="celebrate" id="celebrate-overlay">
+  <div class="celebrate-bg"></div>
+  <div class="celebrate-icon" id="celeb-icon">🎉</div>
+  <div class="stars-anim">⭐ ⭐ ⭐</div>
+  <h2 id="celeb-title">Wonderful, Elizabeth!</h2>
+  <p id="celeb-msg">You finished your meal like a true princess! 👑🐰</p>
+  <button class="dismiss-btn" onclick="dismissCelebration()">Again! 🐰</button>
+</div>
+
+<!-- Lottie player -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
